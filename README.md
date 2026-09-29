@@ -2,6 +2,24 @@
 
 Radial map (gaya SkillTree) untuk semua agent & sub-agent: Multica, Hermes, Claude, OpenClaw.
 
+![Ringkasan peta (mode gelap)](docs/screenshots/01-overview-dark.png)
+
+## Tampilan
+
+| Panel detail agent | Pencarian |
+|---|---|
+| ![Panel detail](docs/screenshots/02-detail-panel.png) | ![Pencarian](docs/screenshots/03-search.png) |
+| Klik node untuk melihat peran, sumber, sub-agent, dan menandai status. | Node yang tidak cocok meredup, cabang induknya tetap terlihat. |
+
+| Filter platform | Mode terang |
+|---|---|
+| ![Filter platform](docs/screenshots/04-filter-platform.png) | ![Mode terang](docs/screenshots/05-overview-light.png) |
+| Sembunyikan platform lewat chip di sidebar; peta otomatis di-fit ulang. | Tema mengikuti sistem, bisa diganti manual. |
+
+> Screenshot diambil dari hasil scan config lokal asli (3 platform, 4 agent, 29 sub-agent).
+
+## Menjalankan
+
 ```
 npm install
 npm run dev        # scan config -> public/agents.json -> buka http://localhost:5173
