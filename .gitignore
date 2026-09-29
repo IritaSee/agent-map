@@ -1,0 +1,4 @@
+node_modules
+dist
+public/agents.json
+.DS_Store
