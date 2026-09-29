@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import RadialMap from './RadialMap.jsx';
+import ChatPanel from './ChatPanel.jsx';
 import { buildGraph, STATUS } from './layout.js';
 
 const LS_STATUS = 'agentmap.status.v1';
@@ -208,6 +209,9 @@ export default function App() {
             </div>
           )}
           {sel.meta?.description && <p className="desc">{sel.meta.description}</p>}
+          {sel.meta?.runtime?.chat && (
+            <ChatPanel agentId={sel.id} kind={sel.meta.runtime.chat} label={sel.label} />
+          )}
           <dl>
             {sel.meta?.role && (<><dt>Peran</dt><dd>{sel.meta.role}</dd></>)}
             {sel.meta?.model && (<><dt>Model</dt><dd><code>{sel.meta.model}</code></dd></>)}

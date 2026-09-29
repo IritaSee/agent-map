@@ -110,6 +110,7 @@ function scanHermes() {
       updatedAt: lastActive,
       source: '~/.hermes',
       description: `Platform terhubung: ${platforms.join(', ') || '-'}.` + (personalities.length ? ` Personality: ${personalities.length}.` : ''),
+      runtime: { chat: 'hermes' },
       subagents: subs,
     },
   ];
@@ -168,6 +169,7 @@ function scanMulticaAgents() {
       updatedAt: last,
       source: `~/${path.basename(P.multicaWs)}/${w.name}`,
       description: `${runs.length} task run dari ${groups.size} issue.`,
+      runtime: { chat: 'multica-task', workspace: wsName || w.name },
       subagents: subs,
     });
   }
@@ -201,6 +203,7 @@ function scanOpenclaw() {
       role: 'Agent OpenClaw / nanobot',
       status: statusFromAge(mtime(path.join(P.openclaw, 'agents', d.name)), 7),
       source: `agent_setups/agents/${d.name}`,
+      runtime: { chat: 'openclaw', workspace: path.join(P.openclaw, 'agents', d.name) },
       subagents: [],
     });
   }
@@ -238,6 +241,7 @@ function scanClaude() {
       tools: fm.tools ? fm.tools.split(',').map((s) => s.trim()) : undefined,
       status: statusFromAge(mtime(path.join(P.claude, 'agents', f.name)), 7, 120),
       source: `agents/${f.name}`,
+      runtime: { chat: 'claude-subagent' },
     });
   }
   for (const d of ls(path.join(P.claude, 'skills'))) {
@@ -264,6 +268,7 @@ function scanClaude() {
         role: 'Agent coding + sub-agent',
         status: statusFromAge(mtime(P.claude), 3),
         source: '~/.claude',
+        runtime: { chat: 'claude-session' },
         subagents: subs,
       },
     ],
