@@ -30,6 +30,50 @@ export default function RadialMap({
   const [hoverId, setHoverId] = useState(null);
   const drag = useRef(null);
   const fitted = useRef(false);
+  const tRef = useRef(t);
+  const zoomTargetRef = useRef(null);
+  const zoomRafRef = useRef(null);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
+  const stopZoomAnim = useCallback(() => {
+    if (zoomRafRef.current) cancelAnimationFrame(zoomRafRef.current);
+    zoomRafRef.current = null;
+    zoomTargetRef.current = null;
+  }, []);
+
+  // eases the transform toward zoomTargetRef.current over a few frames, giving
+  // scroll-wheel zoom a gradual glide instead of an instant jump
+  const runZoomAnim = useCallback(() => {
+    if (zoomRafRef.current) return;
+    const step = () => {
+      const target = zoomTargetRef.current;
+      if (!target) {
+        zoomRafRef.current = null;
+        return;
+      }
+      const cur = tRef.current;
+      const dx = target.x - cur.x;
+      const dy = target.y - cur.y;
+      const dk = target.k - cur.k;
+      if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4 && Math.abs(dk) < 0.0008) {
+        tRef.current = target;
+        setT(target);
+        zoomTargetRef.current = null;
+        zoomRafRef.current = null;
+        return;
+      }
+      const ease = 0.2;
+      const next = { x: cur.x + dx * ease, y: cur.y + dy * ease, k: cur.k + dk * ease };
+      tRef.current = next;
+      setT(next);
+      zoomRafRef.current = requestAnimationFrame(step);
+    };
+    zoomRafRef.current = requestAnimationFrame(step);
+  }, []);
+
+  useEffect(() => stopZoomAnim, [stopZoomAnim]);
 
   const P = useCallback((n) => pos[n.id] || n, [pos]);
   const byId = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, n])), [nodes]);
@@ -52,15 +96,19 @@ export default function RadialMap({
   }, []);
 
   const fit = useCallback(() => {
+    stopZoomAnim();
     const b = bounds(visible, pos);
     const bw = b.maxX - b.minX + 260;
     const bh = b.maxY - b.minY + 200;
     const k = Math.min(size.w / bw, size.h / bh, 1.4);
-    setT({
+    const next = {
       k,
       x: size.w / 2 - ((b.minX + b.maxX) / 2) * k,
       y: size.h / 2 - ((b.minY + b.maxY) / 2) * k,
-    });
+    };
+    tRef.current = next;
+    setT(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, pos, size]);
 
   useEffect(() => {
@@ -81,16 +129,22 @@ export default function RadialMap({
   };
 
   const zoomAt = (factor, cx, cy) => {
-    setT((cur) => {
-      const k = Math.min(3, Math.max(0.15, cur.k * factor));
-      const f = k / cur.k;
-      return { k, x: cx - (cx - cur.x) * f, y: cy - (cy - cur.y) * f };
-    });
+    // chain off the in-flight target (not the rendered t) so repeated wheel
+    // ticks keep compounding smoothly instead of fighting the running animation
+    const base = zoomTargetRef.current || tRef.current;
+    const k = Math.min(3, Math.max(0.15, base.k * factor));
+    const f = k / base.k;
+    zoomTargetRef.current = { k, x: cx - (cx - base.x) * f, y: cy - (cy - base.y) * f };
+    runZoomAnim();
   };
 
   const onWheel = (e) => {
     const r = wrapRef.current.getBoundingClientRect();
-    zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top);
+    // scale the step with scroll intensity (clamped) so light trackpad
+    // scrolling is gentler than before and hard mouse-wheel ticks stay tame
+    const intensity = Math.min(Math.abs(e.deltaY), 120);
+    const factor = Math.exp((e.deltaY < 0 ? 1 : -1) * intensity * 0.0007);
+    zoomAt(factor, e.clientX - r.left, e.clientY - r.top);
   };
 
   // attach wheel as non-passive so we can preventDefault
@@ -106,6 +160,7 @@ export default function RadialMap({
 
   const onBgDown = (e) => {
     if (e.target.closest('[data-node]')) return;
+    stopZoomAnim();
     drag.current = { type: 'pan', sx: e.clientX, sy: e.clientY, ox: t.x, oy: t.y, moved: false };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
